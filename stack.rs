@@ -76,86 +76,100 @@ macro_rules! require {
 macro_rules! test_case {
     ( $x:expr, $proposals:block ) => {
         fn main() {
-            use std::collections::HashMap;
-            let mut propositions: HashMap< &str, fn()->bool> = HashMap::new();
+            use std::collections::LinkedList;
+            type TestPath = LinkedList< String >;
+            let mut sections: LinkedList< TestPath > = LinkedList::new();
+            let mut current_path: LinkedList< String > = LinkedList::new();
+            let mut dry_run = true;
 
             macro_rules! proposition {
                 ( $title:expr, $body:block ) => {
                     {
-                        fn proposal_fn() -> bool {
-                            $body
-                            return true
-                        };
-                        propositions.insert( $title, proposal_fn );
+                        current_path.push_back( String::from( $title ) );
+
+                        if dry_run {
+                            sections.push_back( current_path.clone() );
+                            || -> bool { 
+                                $body
+                                true
+                            }();
+                        }
+                        else {
+                            let mut output_str = String::new();
+                            for _ in 0..current_path.len() - 1 {
+                                output_str.push_str( "  " );
+                            }
+
+                            output_str.push_str( $title );
+                            output_str.push_str( ": " );
+                            println!( "{}", output_str );
+
+                            let test_result = || -> bool {
+                                $body
+                                true
+                            }();
+
+                            println!( "{}", match test_result {
+                                true => "PASSED",
+                                false => "FAILED!",
+                            } );
+                        }
+                        current_path.pop_back();
                     }
                 }
             }
 
-
-            $proposals
-
-            
-            for (title, func) in propositions.iter() {
-                print!( "{} ", title );
-                if func() {
-                    println!( "OK" );
-                }
-                else {
-                    println!( "Failed!" );
-                }
+            for _ in 0..2 {
+                $proposals
+                dry_run = false;
             }
-
-            println!( "All propositions has passed" );
+            
+            // println!( "All propositions has passed" );
         }
     }
 }
 
+
 test_case!( "Persistent list", {
-    proposition!( "An new list is empty", {
+    proposition!( "An new list", {
         let list = List::new();
         require!( list.top() == None );
-    } );
-    
 
-    proposition!( "An empty list retains a single addition", { 
-        let list = List::new().append( String::from( "Top" ) );
-        require!( list.top() == Some( String::from( "Top" ) ) );
-    } );
+        proposition!( "retains a single addition", { 
+            let list = list.append( String::from( "Top" ) );
+            require!( list.top() == Some( String::from( "Top" ) ) );
+        } );
 
+        proposition!( "retains additions in LIFO order then becomes empty", {
+            let list = list.append( String::from( "A" ) );
+            let list = list.append( String::from( "B" ) );
+            let list = list.append( String::from( "C" ) );
 
-    proposition!( "An empty list retains additions in LIFO order then becomes empty", {
-        let list = List::new();
-        let list = list.append( String::from( "A" ) );
-        let list = list.append( String::from( "B" ) );
-        let list = list.append( String::from( "C" ) );
+            require!( list.top() == Some( String::from( "C" ) ) );
 
-        require!( list.top() == Some( String::from( "C" ) ) );
+            let list = list.tail();
+            require!( list.top() == Some( String::from( "B" ) ) );
 
-        let list = list.tail();
-        require!( list.top() == Some( String::from( "B" ) ) );
+            let list = list.tail();
+            require!( list.top() == Some( String::from( "A" ) ) );
 
-        let list = list.tail();
-        require!( list.top() == Some( String::from( "A" ) ) );
+            let list = list.tail();
+            require!( list.top() == None );
+        } );
 
-        let list = list.tail();
-        require!( list.top() == None );
-    } );
-
-
-    proposition!( "An empty list will not iterate", {
-        let list = List::new();
-        let mut list_iterator = list.iter();
-        require!( list_iterator.next() == None );
+        proposition!( "will not iterate", {
+            let mut list_iterator = list.iter();
+            require!( list_iterator.next() == None );
+        } );
     } );
 
 
-    proposition!( "Iterators for an arbitrary list can count the elements and keep the list intact", {
+    proposition!( "In an arbitrary list can count the elements and keep the list intact", {
         let list = List::new()
             .append( String::from( "A" ) )
             .append( String::from( "B" ) )
             .append( String::from( "C" ) );
         require!( list.top() == Some( String::from( "C" ) ) );
-
         require!( list.iter().count() == 3 );
         require!( list.top() == Some( String::from( "C" ) ) );
     } );
