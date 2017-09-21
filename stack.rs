@@ -62,70 +62,103 @@ impl< 'a > Iterator for ListIter< 'a > {
 }
 
 
-fn a_new_list_is_empty() {
-    let list = List::new();
-    assert!( list.top() == None );
+macro_rules! require {
+    ( $x:expr ) => {
+        {
+            if !$x {
+                return false 
+            }
+        }
+    };
 }
 
 
-fn an_empty_list_retains_a_single_addition() {
-    let list = List::new().append( String::from( "Top" ) );
-    assert!( list.top() == Some( String::from( "Top" ) ) );
-}
+macro_rules! test_case {
+    ( $x:expr, $proposals:block ) => {
+        fn main() {
+            use std::collections::HashMap;
+            let mut propositions: HashMap< &str, fn()->bool> = HashMap::new();
 
-fn an_empty_list_retains_additions_in_lifo_order_then_becomes_empty() {
-    let list = List::new();
-    let list = list.append( String::from( "A" ) );
-    let list = list.append( String::from( "B" ) );
-    let list = list.append( String::from( "C" ) );
-
-    assert_eq!( list.top(), Some( String::from( "C" ) ) );
-
-    let list = list.tail();
-    assert!( list.top() == Some( String::from( "B" ) ) );
-
-    let list = list.tail();
-    assert!( list.top() == Some( String::from( "A" ) ) );
-
-    let list = list.tail();
-    assert!( list.top() == None );
-}
+            macro_rules! proposition {
+                ( $title:expr, $body:block ) => {
+                    {
+                        fn proposal_fn() -> bool {
+                            $body
+                            return true
+                        };
+                        propositions.insert( $title, proposal_fn );
+                    }
+                }
+            }
 
 
-fn an_empty_list_will_not_iterate() {
-    let list = List::new();
-    let mut list_iterator = list.iter();
-    assert!( list_iterator.next() == None );
-}
+            $proposals
 
+            
+            for (title, func) in propositions.iter() {
+                print!( "{} ", title );
+                if func() {
+                    println!( "OK" );
+                }
+                else {
+                    println!( "Failed!" );
+                }
+            }
 
-fn iterators_for_an_arbitrary_list_read_the_elements_will_keep_the_list_intact() {
-    let list = List::new()
-        .append( String::from( "A" ) )
-        .append( String::from( "B" ) )
-        .append( String::from( "C" ) );
-    assert!( list.top() == Some( String::from( "C" ) ) );
-
-    assert!( list.iter().count() == 3 );
-    assert!( list.top() == Some( String::from( "C" ) ) );
-}
-
-
-use std::collections::HashMap;
-
-fn main() {
-    let mut tests: HashMap< &str, fn() > = HashMap::new();
-    tests.insert( "A new list is empty", a_new_list_is_empty );
-    tests.insert( "An empty list retains a single addition", an_empty_list_retains_a_single_addition );
-    tests.insert( "An empty list retains additions in LIFO order then becomes empty", an_empty_list_retains_additions_in_lifo_order_then_becomes_empty );
-    tests.insert( "An empty list will not iterate", an_empty_list_will_not_iterate );
-    tests.insert( "Iterators for an arbitrary list can count the elements and keep the list intact", iterators_for_an_arbitrary_list_read_the_elements_will_keep_the_list_intact );
-
-    for (title, func) in tests.iter() {
-        print!( "{} ", title );
-        func();
-        println!( "OK" );
+            println!( "All propositions has passed" );
+        }
     }
-
-    println!( "All tests has passed" );
 }
+
+test_case!( "Persistent list", {
+    proposition!( "An new list is empty", {
+        let list = List::new();
+        require!( list.top() == None );
+    } );
+    
+
+    proposition!( "An empty list retains a single addition", { 
+        let list = List::new().append( String::from( "Top" ) );
+        require!( list.top() == Some( String::from( "Top" ) ) );
+    } );
+
+
+    proposition!( "An empty list retains additions in LIFO order then becomes empty", {
+        let list = List::new();
+        let list = list.append( String::from( "A" ) );
+        let list = list.append( String::from( "B" ) );
+        let list = list.append( String::from( "C" ) );
+
+        require!( list.top() == Some( String::from( "C" ) ) );
+
+        let list = list.tail();
+        require!( list.top() == Some( String::from( "B" ) ) );
+
+        let list = list.tail();
+        require!( list.top() == Some( String::from( "A" ) ) );
+
+        let list = list.tail();
+        require!( list.top() == None );
+    } );
+
+
+    proposition!( "An empty list will not iterate", {
+        let list = List::new();
+        let mut list_iterator = list.iter();
+        require!( list_iterator.next() == None );
+    } );
+
+
+    proposition!( "Iterators for an arbitrary list can count the elements and keep the list intact", {
+        let list = List::new()
+            .append( String::from( "A" ) )
+            .append( String::from( "B" ) )
+            .append( String::from( "C" ) );
+        require!( list.top() == Some( String::from( "C" ) ) );
+
+        require!( list.iter().count() == 3 );
+        require!( list.top() == Some( String::from( "C" ) ) );
+    } );
+} );
+
+
