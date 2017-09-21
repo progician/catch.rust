@@ -114,11 +114,18 @@ fn iterators_for_an_arbitrary_list_read_the_elements_will_keep_the_list_intact()
 use std::collections::HashMap;
 
 fn main() {
-    a_new_list_is_empty();
-    an_empty_list_retains_a_single_addition();
-    an_empty_list_retains_additions_in_lifo_order_then_becomes_empty();
-    an_empty_list_will_not_iterate();
-    iterators_for_an_arbitrary_list_read_the_elements_will_keep_the_list_intact();
+    let mut tests: HashMap< &str, fn() > = HashMap::new();
+    tests.insert( "A new list is empty", a_new_list_is_empty );
+    tests.insert( "An empty list retains a single addition", an_empty_list_retains_a_single_addition );
+    tests.insert( "An empty list retains additions in LIFO order then becomes empty", an_empty_list_retains_additions_in_lifo_order_then_becomes_empty );
+    tests.insert( "An empty list will not iterate", an_empty_list_will_not_iterate );
+    tests.insert( "Iterators for an arbitrary list can count the elements and keep the list intact", iterators_for_an_arbitrary_list_read_the_elements_will_keep_the_list_intact );
+
+    for (title, func) in tests.iter() {
+        print!( "{} ", title );
+        func();
+        println!( "OK" );
+    }
 
     println!( "All tests has passed" );
 }
