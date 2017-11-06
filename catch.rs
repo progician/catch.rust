@@ -1,23 +1,9 @@
-
-
-
-macro_rules! require {
-    ( $x:expr ) => {
-        {
-            if !$x {
-                return false;
-            }
-        }
-    };
-}
-
-
 #[macro_export]
 macro_rules! test_case {
-    ( $x:expr, $proposals:block ) => {
+    ( $test_case_title:expr, $test_case_body:block ) => {
         pub fn test_case_fn() -> bool {
+            let test_case_title = $test_case_title;
             let mut collecting_tests = true;
-
             let mut leaf_proposals = Vec::new();
 
             use std::collections::LinkedList;
@@ -46,57 +32,78 @@ macro_rules! test_case {
                 return true;
             }
 
-            macro_rules! proposition {
-                ( $title:expr, $body:block ) => {
-                    {
-                        current_path.push_back( String::from( $title ) );
-                        if collecting_tests {
-                            leaf_proposals.push( current_path.clone() );
-                        }
-                        else if starts_with( &specific_proposal, &current_path ){
-                            let test_result = || -> bool {
-                                $body
-                                true
-                            }();
-                            
-                            for section in current_path.clone() {
-                                println!( "{}", section );
-                            }
-                            println!( "{}", if test_result { "PASSED" }
-                                            else { "FAILED" } );
-                        }
-                        current_path.pop_back();
-                    }
-                }
-            }
 
             macro_rules! section {
-                ( $title:expr, $body:block ) => {
+                ( $section_title:expr, $section_body:block ) => {
                     {
-                        current_path.push_back( String::from( $title ) );
-                        if collecting_tests {
-                            || -> bool {
-                                $body
-                                true
-                            }();
+                        let section_file = String::from( file!() );
+                        let section_line = line!();
+                        current_path.push_back( String::from( $section_title ) );
+                        let mut having_checks = false;
+                        let mut skip_checks = true;
+                        let mut check_file = String::new();
+                        let mut check_line = 0;
+
+                        macro_rules! require {
+                            ( $condition:expr ) => {
+                                {
+                                    check_line = line!();
+                                    check_file = String::from( file!() );
+                                    having_checks = true;
+                                    if !collecting_tests {
+                                        if !skip_checks {
+                                            if !$condition {
+                                                return false;
+                                            }
+                                        }
+                                    }
+                                }
+                            };
                         }
-                        else if starts_with( &specific_proposal, &current_path ){
-                            || -> bool {
-                                $body
+
+
+                        if collecting_tests {
+                            $section_body;
+                            if having_checks {
+                                leaf_proposals.push( current_path.clone() );
+                            }
+                        }
+                        else if starts_with( &specific_proposal, &current_path ) {
+                            if specific_proposal.len() == current_path.len() {
+                                skip_checks = false;
+                            }
+                            let test_result = || -> bool {
+                                $section_body
                                 true
                             }();
+                           
+                            if !skip_checks {
+                                println!( "-------------------------------------------------------------------------------" );
+                                println!( "{}", test_case_title );
+                                for section in current_path.clone() {
+                                    println!( "  {}", section );
+                                }
+                                println!( "-------------------------------------------------------------------------------" );
+                                println!( "{}:{}", section_file, section_line );
+                                println!( "..............................................................................." );
+                                println!();
+                                println!( "{}:{}", check_file, check_line );
+                                println!( "{}", if test_result { "PASSED" }
+                                                else { "FAILED" } );
+                                println!();
+                            }
                         }
                         current_path.pop_back();
                     }
                 }
             }
-            
 
-            $proposals;
+
+            $test_case_body;
             collecting_tests = false;
             for leaf_proposal in leaf_proposals.clone() {
                 specific_proposal = leaf_proposal.clone();
-                $proposals;
+                $test_case_body;
             }
             return true;
         }

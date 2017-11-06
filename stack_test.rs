@@ -4,14 +4,14 @@ test_case!( "Persistent list", {
     section!( "A new list", {
         let list = List::new();
 
-        proposition!( "is empty", { require!( list.top() == None ); } );
+        section!( "is empty", { require!( list.top() == None ); } );
 
-        proposition!( "retains a single addition", { 
+        section!( "retains a single addition", { 
             let list = list.append( String::from( "Top" ) );
             require!( list.top() == Some( String::from( "Top" ) ) );
         } );
 
-        proposition!( "retains additions in LIFO order then becomes empty", {
+        section!( "retains additions in LIFO order then becomes empty", {
             let list = list.append( String::from( "A" ) );
             let list = list.append( String::from( "B" ) );
             let list = list.append( String::from( "C" ) );
@@ -28,14 +28,14 @@ test_case!( "Persistent list", {
             require!( list.top() == None );
         } );
 
-        proposition!( "will not iterate", {
+        section!( "will not iterate", {
             let mut list_iterator = list.iter();
             require!( list_iterator.next() == None );
         } );
     } );
 
 
-    proposition!( "In an arbitrary list can count the elements and keep the list intact", {
+    section!( "In an arbitrary list can count the elements and keep the list intact", {
         let list = List::new()
             .append( String::from( "A" ) )
             .append( String::from( "B" ) )
